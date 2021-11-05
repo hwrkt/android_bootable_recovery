@@ -2859,13 +2859,33 @@ void TWPartitionManager::Translate_Partition_Display_Names() {
 	DataManager::SetBackupFolder();
 }
 
+bool checkForS() {
+	system("mount /system_root");
+	ifstream bprop("/system/build.prop");
+	bool s = false;
+	string sline;
+	if(bprop.is_open()) {
+		while(!bprop.eof()) {
+			getline(bprop, sline);
+			if(sline.find("ro.build.version.sdk=31") != string::npos) {
+				LOGINFO("Android 12 detected\n");
+				s = true;
+				break;
+			} else if(bprop.eof()) { LOGINFO("Android older than 12 detected\n"); }
+		}
+	} else { LOGERR("Failed to open build.prop\n"); }
+	bprop.close();
+	system("umount /system_root");
+	return s;
+}
+
 bool TWPartitionManager::Decrypt_Adopted() {
 #ifdef TW_INCLUDE_CRYPTO
 	bool ret = false;
 	if (!Mount_By_Path("/data", false)) {
 		LOGERR("Cannot decrypt adopted storage because /data will not mount\n");
 		return false;
-	}
+	} else if(checkForS()) { return false; }
 	LOGINFO("Decrypt adopted storage starting\n");
 	char* xmlFile = PageManager::LoadFileToBuffer("/data/system/storage.xml", NULL);
 	xml_document<> *doc = NULL;
