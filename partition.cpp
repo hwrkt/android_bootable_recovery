@@ -733,8 +733,8 @@ void TWPartition::Setup_Data_Partition(bool Display_Error) {
 bool TWPartition::Decrypt_FBE_DE() {
 if (TWFunc::Path_Exists("/data/unencrypted/key/version")) {
 		DataManager::SetValue(TW_IS_FBE, 1);
-		property_set("ro.crypto.state", "encrypted");
-		property_set("ro.crypto.type", "file");
+		PartitionManager.Set_Crypto_State();
+		PartitionManager.Set_Crypto_Type("file");
 		LOGINFO("File Based Encryption is present\n");
 #ifdef TW_INCLUDE_FBE
 	Is_FBE = true;
@@ -755,7 +755,7 @@ if (TWFunc::Path_Exists("/data/unencrypted/key/version")) {
 	while (!Decrypt_DE() && --retry_count)
 		usleep(2000);
 	if (retry_count > 0) {
-		property_set("ro.crypto.state", "encrypted");
+		PartitionManager.Set_Crypto_State();
 		Is_Encrypted = true;
 		Is_Decrypted = false;
 		DataManager::SetValue(TW_IS_ENCRYPTED, 1);
@@ -1478,7 +1478,7 @@ bool TWPartition::Mount(bool Display_Error) {
 		string cmd = "/sbin/exfat-fuse -o big_writes,max_read=131072,max_write=131072 " + Actual_Block_Device + " " + Mount_Point;
 		LOGINFO("cmd: %s\n", cmd.c_str());
 		string result;
-		if (TWFunc::Exec_Cmd(cmd, result) != 0) {
+		if (TWFunc::Exec_Cmd(cmd, result, false) != 0) {
 			LOGINFO("exfat-fuse failed to mount with result '%s', trying vfat\n", result.c_str());
 			Current_File_System = "vfat";
 		} else {
@@ -1749,10 +1749,7 @@ bool TWPartition::Wipe(string New_File_System) {
 			}
 		}
 
-		if (Has_Data_Media && recreate_media) {
-			Recreate_Media_Folder();
-		}
-		if (Is_Storage && Mount(false))
+		if (Is_Storage && Mount(false) && !Is_FBE)
 			PartitionManager.Add_MTP_Storage(MTP_Storage_ID);
 	}
 
@@ -2059,15 +2056,20 @@ bool TWPartition::Wipe_Encryption() {
 	Is_Encrypted = false;
 	if (Wipe(Fstab_File_System)) {
 		Has_Data_Media = Save_Data_Media;
-		if (Has_Data_Media && !Symlink_Mount_Point.empty()) {
-			Recreate_Media_Folder();
-			if (Mount(false))
-				PartitionManager.Add_MTP_Storage(MTP_Storage_ID);
-		}
 		DataManager::SetValue(TW_IS_ENCRYPTED, 0);
 #ifndef TW_OEM_BUILD
 		gui_msg("format_data_msg=You may need to reboot recovery to be able to use /data again.");
 #endif
+		if (Is_FBE) {
+			gui_msg(Msg(msg::kWarning, "data_media_fbe_msg=TWRP will not recreate /data/media on an FBE device. Please reboot into your rom to create /data/media."));
+		} else {
+			if (Has_Data_Media && !Symlink_Mount_Point.empty()) {
+				Recreate_Media_Folder();
+				if (Mount(false))
+					PartitionManager.Add_MTP_Storage(MTP_Storage_ID);
+			}
+		}
+
 		ret = true;
 		if (!Key_Directory.empty())
 			ret = PartitionManager.Wipe_By_Path(Key_Directory);
@@ -3481,4 +3483,17 @@ void TWPartition::Set_Backup_FileName(string fname) {
 
 string TWPartition::Get_Backup_Name() {
 	return Backup_Name;
+}
+
+std::string TWPartition::Get_Backup_FileName() {
+	return Backup_FileName;
+}
+
+std::string TWPartition::Get_Display_Name() {
+	return Display_Name;
+}
+
+bool TWPartition::Is_SlotSelect() {
+	return SlotSelect;
+
 }

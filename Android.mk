@@ -75,7 +75,8 @@ LOCAL_SRC_FILES := \
     twrpDigestDriver.cpp \
     openrecoveryscript.cpp \
     tarWrite.c \
-    twrpAdbBuFifo.cpp
+    twrpAdbBuFifo.cpp \
+    twrpRepacker.cpp
 
 ifneq ($(TARGET_RECOVERY_REBOOT_SRC),)
   LOCAL_SRC_FILES += $(TARGET_RECOVERY_REBOOT_SRC)
@@ -237,6 +238,13 @@ ifeq ($(TW_EXCLUDE_MTP),)
     LOCAL_CFLAGS += -DTW_HAS_LEGACY_MTP
     LOCAL_SHARED_LIBRARIES += libtwrpmtp-legacy
 endif
+endif
+
+ifeq ($(BOARD_USES_RECOVERY_AS_BOOT), true)
+    LOCAL_CFLAGS += -DBOARD_USES_RECOVERY_AS_BOOT
+endif
+ifeq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE), true)
+    LOCAL_CFLAGS += -DBOARD_BUILD_SYSTEM_ROOT_IMAGE
 endif
 
 #TWRP Build Flags
