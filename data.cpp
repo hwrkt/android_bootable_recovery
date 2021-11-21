@@ -652,6 +652,23 @@ void DataManager::SetDefaultValues()
 #else
 	mConst.SetValue(TW_NO_BATTERY_PERCENT, "0");
 #endif
+#ifdef TW_NO_CPU_TEMP
+	printf("TW_NO_CPU_TEMP := true\n");
+	mConst.SetValue("tw_no_cpu_temp", "1");
+#else
+	string cpu_temp_file;
+#ifdef TW_CUSTOM_CPU_TEMP_PATH
+	cpu_temp_file = EXPAND(TW_CUSTOM_CPU_TEMP_PATH);
+#else
+	cpu_temp_file = "/sys/class/thermal/thermal_zone0/temp";
+#endif
+	if (TWFunc::Path_Exists(cpu_temp_file)) {
+		mConst.SetValue("tw_no_cpu_temp", "0");
+	} else {
+		LOGINFO("CPU temperature file '%s' not found, disabling CPU temp.\n", cpu_temp_file.c_str());
+		mConst.SetValue("tw_no_cpu_temp", "1");
+	}
+#endif
 #ifdef TW_CUSTOM_POWER_BUTTON
 	printf("TW_POWER_BUTTON := %s\n", EXPAND(TW_CUSTOM_POWER_BUTTON));
 	mConst.SetValue(TW_POWER_BUTTON, EXPAND(TW_CUSTOM_POWER_BUTTON));
