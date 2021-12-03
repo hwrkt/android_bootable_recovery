@@ -2892,11 +2892,10 @@ bool TWPartitionManager::Decrypt_Adopted() {
 	// In Android 12 xml format changed. Previously it was human-readable format with xml tags
 	// now it's ABX (Android Binary Xml). Sadly, rapidxml can't parse it, so check xml format firstly
 	std::string path = "/data/system/storage.xml";
-	if ((atoi(TWFunc::System_Property_Get("ro.build.version.sdk").c_str()) > 30) && TWFunc::Path_Exists(path))
-		if(!TWFunc::Check_Xml_Format(path.c_str())) {
-			LOGINFO("Android 12+: storage.xml is in ABX format. Skipping adopted storage decryption\n");
-			return false;
-		}
+	if (TWFunc::Path_Exists(path) && !TWFunc::Check_Xml_Format(path.c_str())) {
+		LOGINFO("Android 12+: storage.xml is in ABX format. Skipping adopted storage decryption\n");
+		return false;
+	}
 
 	LOGINFO("Decrypt adopted storage starting\n");
 	char* xmlFile = PageManager::LoadFileToBuffer("/data/system/storage.xml", NULL);
